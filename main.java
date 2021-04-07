@@ -7,8 +7,10 @@ public class Main {
 
     public static void main(String[] args) {
 	    System.out.println("Welcome to the MCTS Tic-Tac-Toe player");
+        System.out.println("Be careful: The AI will get smarter the more rounds you play!");
 
-	    Tree t = new Tree();
+
+        Tree t = new Tree();
 
         Scanner sc = new Scanner(System.in);
 
@@ -16,22 +18,30 @@ public class Main {
         while(true)
         {
             Node curr = t.root;
+            System.out.println();
+            System.out.println();
+            System.out.println();
+            System.out.println("----- NEW GAME -----");
+            System.out.println();
+            System.out.println();
+
+
             for(int i=0;;i++)
             {
-                curr.visits++;
+                //curr.visits++;
+
                 if(curr.board.winner!=Board.IN_PROGRESS)
                 {
+                    MCTS.backPropagation(curr,curr.board.winner== Board.P2);
                     if(curr.board.winner== Board.P2)
                     {
                         System.out.println("YOU LOST :(");
-                        MCTS.backPropagation(curr);
                     }
                     else if(curr.board.winner==Board.P1)   System.out.println("YOU WON !!!");
                     else System.out.println("It's a draw -_- .");
                     break;
                 }
                 //P1: the user
-                System.out.println(i);
                 if(i%2==0)
                 {
                     int[][] tmp = new int[3][3];
@@ -45,21 +55,23 @@ public class Main {
                     }
                     Board tmp_b = new Board(tmp);
                     curr = curr.child.get(tmp_b);
-                    //curr.board.printBoard();
+
                 }
                 //P2: The MCTS algorithm
                 else {
+                    System.out.println("AI's turn (using MCTS):");
                     if(curr.child.size()==0){
                         MCTS.simulation(curr);
                     }
                     curr = MCTS.selection(curr);
                 }
+
                 curr.board.printBoard();
             }
         }
     }
 }
-
+//stores a pair (x,y)
 class Position {
     int x,y;
     public Position(int x,int y)
@@ -69,6 +81,8 @@ class Position {
     }
 }
 
+
+//node and tree classes to store the tree
 class Node {
     HashMap<Board,Node> child;
     Node parent;
@@ -80,7 +94,7 @@ class Node {
         parent= p;
         board = b;
         wins = 0;
-        visits = 1;
+        visits = 0;
     }
 }
 
@@ -94,8 +108,10 @@ class Tree {
     }
 }
 
+//the MCTS algorithm
 class MCTS {
 
+    //selection phase using the UTC formula
     static Node selection(Node curr)
     {
         double max = 0;
@@ -111,6 +127,7 @@ class MCTS {
         return res;
     }
 
+    //expansion: adding children to a node
     static void expansion(Node curr,int player)
     {
         ArrayList<Position> empty = curr.board.emptyCells();
@@ -129,17 +146,14 @@ class MCTS {
     //starts from node, simulates random playout and registers results on the tree
     static void simulation(Node curr)
     {
-        final int iterations = 2;
+        final int iterations = 30000;
         for(int i=0;i<iterations;i++)
         {
             Node tmp = curr;
-            /*if(curr.child.size()==0){
-                MCTS.expansion(curr,Board.P2);
-            }*/
             for(int turn=0;tmp.board.winner==-1;turn++)
             {
                 Random rand = new Random();
-                tmp.visits++;
+                //tmp.visits++;
                 if(tmp.child.size()==0){
                     MCTS.expansion(tmp,(turn%2==0?Board.P2:Board.P1));
                 }
@@ -154,26 +168,22 @@ class MCTS {
                     counter++;
                 }
             }
-            if(tmp.board.winner==Board.P2) backPropagation(tmp,curr);
+            backPropagation(tmp,tmp.board.winner==Board.P2);
 
         }
     }
 
-    static void backPropagation(Node curr)
+    //propagates new results on the path up to the root
+    static void backPropagation(Node curr,boolean win)
     {
         if(curr==null) return;
-        curr.wins++;
-        backPropagation(curr.parent);
-    }
-
-    static void backPropagation(Node curr,Node stop)
-    {
-        curr.wins++;
-        if(curr==stop) return;
-        backPropagation(curr.parent,stop);
+        if(win) curr.wins++;
+        curr.visits++;
+        backPropagation(curr.parent,win);
     }
 }
 
+//represents the state of the board
 class Board {
     int[][] cell;
     int winner;
